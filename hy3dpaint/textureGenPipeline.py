@@ -79,6 +79,7 @@ class Hunyuan3DPaintPipeline:
             texture_size=self.config.texture_size,
             bake_mode=self.config.bake_mode,
             raster_mode=self.config.raster_mode,
+            device=self.config.device
         )
         self.view_processor = ViewProcessor(self.config, self.render)
         self.load_models()
@@ -117,7 +118,9 @@ class Hunyuan3DPaintPipeline:
         # Load mesh
         mesh = trimesh.load(processed_mesh_path)
         mesh = mesh_uv_wrap(mesh)
+        print('>' * 9, 'render.load_mesh')
         self.render.load_mesh(mesh=mesh)
+        print('>' * 9, 'render.load_mesh over')
 
         ########### View Selection #########
         selected_camera_elevs, selected_camera_azims, selected_view_weights = self.view_processor.bake_view_selection(
