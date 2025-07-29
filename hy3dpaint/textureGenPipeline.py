@@ -118,9 +118,7 @@ class Hunyuan3DPaintPipeline:
         # Load mesh
         mesh = trimesh.load(processed_mesh_path)
         mesh = mesh_uv_wrap(mesh)
-        print('>' * 9, 'render.load_mesh')
         self.render.load_mesh(mesh=mesh)
-        print('>' * 9, 'render.load_mesh over')
 
         ########### View Selection #########
         selected_camera_elevs, selected_camera_azims, selected_view_weights = self.view_processor.bake_view_selection(

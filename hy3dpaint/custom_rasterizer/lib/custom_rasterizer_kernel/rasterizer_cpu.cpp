@@ -1,17 +1,75 @@
 #include "rasterizer_cpu.h"
+#include <ATen/mps/MPSDevice.h>
+
+
+// Check if MPS is available
+bool is_mps_available() {
+    return torch::mps::is_available();
+}
+
+// Move tensor to MPS device
+torch::Tensor to_mps(torch::Tensor tensor) {
+    if (is_mps_available()) {
+        return tensor.to(torch::kMPS);
+    }
+    return tensor;
+}
+
+// Shows a simple text-based progress bar in the console
+void displayProgressBar(int current, int total, const std::string& prefix = "") {
+    const int barWidth = 50;
+    float progress = (float)current / total;
+    int pos = barWidth * progress;
+
+    std::cout << "\r" << prefix << " [";
+    for (int i = 0; i < barWidth; ++i) {
+        if (i < pos) std::cout << "=";
+        else if (i == pos) std::cout << ">";
+        else std::cout << " ";
+    }
+    std::cout << "] " << int(progress * 100.0) << " %";
+    std::cout.flush();
+
+    if (current == total) {
+        std::cout << std::endl;
+    }
+}
+
 
 void rasterizeTriangleCPU(int idx, float* vt0, float* vt1, float* vt2, int width, int height, INT64* zbuffer, float* d, float occlusion_truncation) {
+    printf("Rasterizing triangle %d\n", idx);
     float x_min = std::min(vt0[0], std::min(vt1[0],vt2[0]));
     float x_max = std::max(vt0[0], std::max(vt1[0],vt2[0]));
     float y_min = std::min(vt0[1], std::min(vt1[1],vt2[1]));
     float y_max = std::max(vt0[1], std::max(vt1[1],vt2[1]));
 
+    // Check for invalid values (NaN or inf)
+    if (std::isnan(x_min) || std::isnan(x_max) || std::isnan(y_min) || std::isnan(y_max) ||
+        std::isinf(x_min) || std::isinf(x_max) || std::isinf(y_min) || std::isinf(y_max)) {
+        printf("Warning: Triangle %d has invalid coordinates (NaN or Inf), skipping.\n", idx);
+        return;
+    }
+
+    // Compute the total number of pixels to process
+//    printf("x_max %f, x_min %f\n", x_max, x_min);
+//    printf("y_max %f, y_min %f\n", y_max, y_min);
+    int total_pixels = (int)(x_max - x_min + 1) * (int)(y_max - y_min + 1);
+    int processed_pixels = 0;
+//    printf("total_pixels %d\n", total_pixels);
+
     for (int px = x_min; px < x_max + 1; ++px) {
         if (px < 0 || px >= width)
             continue;
+
+        processed_pixels++;
+        if (processed_pixels % 100 == 0 || processed_pixels == total_pixels) {
+            displayProgressBar(processed_pixels, total_pixels, "Rasterizing triangle " + std::to_string(idx));
+        }
+
         for (int py = y_min; py < y_max + 1; ++py) {
             if (py < 0 || py >= height)
                 continue;
+
 //            float vt[2] = {px + 0.5, py + 0.5};
             float vt[2] = {static_cast<float>(px) + 0.5f, static_cast<float>(py) + 0.5f};
             float baryCentricCoordinate[3];
@@ -37,6 +95,8 @@ void rasterizeTriangleCPU(int idx, float* vt0, float* vt1, float* vt2, int width
             }
         }
     }
+
+    printf("Finifsh rasterizing triangle %d\n", idx);
 }
 
 void barycentricFromImgcoordCPU(float* V, int* F, int* findices, INT64* zbuffer, int width, int height, int num_vertices, int num_faces,
@@ -95,6 +155,13 @@ void rasterizeImagecoordsKernelCPU(float* V, int* F, float* d, INT64* zbuffer, f
 std::vector<torch::Tensor> rasterize_image_cpu(torch::Tensor V, torch::Tensor F, torch::Tensor D,
     int width, int height, float occlusion_truncation, int use_depth_prior)
 {
+    // Ensure input tensors are on MPS device
+    V = to_mps(V);
+    F = to_mps(F);
+    if (use_depth_prior) {
+        D = to_mps(D);
+    }
+
     int num_faces = F.size(0);
     int num_vertices = V.size(0);
     auto options = torch::TensorOptions().dtype(torch::kInt32).requires_grad(false);
@@ -107,18 +174,35 @@ std::vector<torch::Tensor> rasterize_image_cpu(torch::Tensor V, torch::Tensor F,
         for (int i = 0; i < num_faces; ++i) {
             rasterizeImagecoordsKernelCPU(V.data_ptr<float>(), F.data_ptr<int>(), 0,
                 (INT64*)z_min.data_ptr<int64_t>(), occlusion_truncation, width, height, num_vertices, num_faces, i);
+
+            int processed = i + 1;
+            if (processed % 100 == 0 || processed == num_faces) {
+                displayProgressBar(processed, num_faces, "Rasterizing faces, use_depth_prior");
+            }
         }
     } else {
-        for (int i = 0; i < num_faces; ++i)
+        for (int i = 0; i < num_faces; ++i) {
             rasterizeImagecoordsKernelCPU(V.data_ptr<float>(), F.data_ptr<int>(), D.data_ptr<float>(),
-                (INT64*)z_min.data_ptr<int64_t>(), occlusion_truncation, width, height, num_vertices, num_faces, i);
+                    (INT64*)z_min.data_ptr<int64_t>(), occlusion_truncation, width, height, num_vertices, num_faces, i);
+
+            int processed = i + 1;
+            if (processed % 100 == 0 || processed == num_faces) {
+                displayProgressBar(processed, num_faces, "Rasterizing faces");
+            }
+        }
     }
 
     auto float_options = torch::TensorOptions().dtype(torch::kFloat32).requires_grad(false);
     auto barycentric = torch::zeros({height, width, 3}, float_options);
-    for (int i = 0; i < width * height; ++i)
+    for (int i = 0; i < width * height; ++i) {
         barycentricFromImgcoordCPU(V.data_ptr<float>(), F.data_ptr<int>(),
             findices.data_ptr<int>(), (INT64*)z_min.data_ptr<int64_t>(), width, height, num_vertices, num_faces, barycentric.data_ptr<float>(), i);
+
+        int processed = i + 1;
+        if (processed % 100 == 0 || processed == width * height) {
+            displayProgressBar(processed, width * height, "Computing barycentric coordinates");
+        }
+    }
 
     return {findices, barycentric};
 }
@@ -126,7 +210,8 @@ std::vector<torch::Tensor> rasterize_image_cpu(torch::Tensor V, torch::Tensor F,
 std::vector<torch::Tensor> rasterize_image(torch::Tensor V, torch::Tensor F, torch::Tensor D,
     int width, int height, float occlusion_truncation, int use_depth_prior)
 {
-    return rasterize_image_cpu(V, F, D, width, height, occlusion_truncation, use_depth_prior);
+  printf("Rasterize image with CPU\n");  
+  return rasterize_image_cpu(V, F, D, width, height, occlusion_truncation, use_depth_prior);
 }
 
 

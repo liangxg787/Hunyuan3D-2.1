@@ -1,4 +1,5 @@
 import sys
+import gc
 
 sys.path.insert(0, './hy3dshape')
 sys.path.insert(0, './hy3dpaint')
@@ -25,19 +26,25 @@ if torch.backends.mps.is_available():
     device = torch.device("mps")
 
 # shape
-# model_path = 'tencent/Hunyuan3D-2.1'
-#
-#
-# pipeline_shapegen = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path, device=device)
-#
-# image_path = 'assets/demo.png'
-# image = Image.open(image_path).convert("RGBA")
-# if image.mode == 'RGB':
-#     rembg = BackgroundRemover()
-#     image = rembg(image)
-#
-# mesh = pipeline_shapegen(image=image, num_inference_steps=50)[0]
-# mesh.export('demo.glb')
+model_path = 'tencent/Hunyuan3D-2.1'
+
+
+pipeline_shapegen = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path, device=device)
+
+image_path = 'assets/demo.png'
+image = Image.open(image_path).convert("RGBA")
+if image.mode == 'RGB':
+    rembg = BackgroundRemover()
+    image = rembg(image)
+
+mesh = pipeline_shapegen(image=image, num_inference_steps=50)[0]
+mesh.export('demo.glb')
+
+# clean up
+del pipeline_shapegen
+del mesh
+gc.collect()
+torch.cuda.empty_cache()
 
 # paint
 max_num_view = 6  # can be 6 to 9

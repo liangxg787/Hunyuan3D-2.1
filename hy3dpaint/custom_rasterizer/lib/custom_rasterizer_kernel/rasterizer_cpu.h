@@ -3,15 +3,22 @@
 
 #include <torch/extension.h>
 #include <vector>
-#include <ATen/ATen.h>
+
+// Only include Metal headers when compiling as Objective-C++
+#ifdef __OBJC__
+#include <Metal/Metal.h>
+#include <MetalPerformanceShaders/MetalPerformanceShaders.h>
+#endif
 
 #define INT64 unsigned long long
 #define MAXINT 2147483647
 
-// Only include CUDA headers when compiling for CUDA
-#ifdef __CUDACC__
-#include <ATen/cuda/CUDAContext.h>
-#define HOST_DEVICE __host__ __device__
+// Use conditional compilation for Objective-C specific code
+#ifdef __OBJC__
+#define HOST_DEVICE __attribute__((__host__, __device__))
+extern "C" {
+    id<MTLDevice> getMetalDevice(); // Declare function to get device
+}
 #else
 #define HOST_DEVICE
 #endif

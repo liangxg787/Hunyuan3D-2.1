@@ -615,13 +615,10 @@ class MeshRender:
             scale_factor: Scaling factor for mesh normalization
             auto_center: Whether to automatically center the mesh
         """
-        print('>' * 9, 'load_mesh')
         vtx_pos, pos_idx, vtx_uv, uv_idx, texture_data = load_mesh(mesh)
-        print('>' * 9, 'set_mesh')
         self.set_mesh(
             vtx_pos, pos_idx, vtx_uv=vtx_uv, uv_idx=uv_idx, scale_factor=scale_factor, auto_center=auto_center
         )
-        print('>' * 9, 'set_texture')
         if texture_data is not None:
             self.set_texture(texture_data)
 
@@ -935,9 +932,7 @@ class MeshRender:
         )
         vtx_uv = vtx_uv.view(1, vnum, 4) * 2 - 1
 
-        print('>'*9, 'raster_rasterize')
         rast_out, rast_out_db = self.raster_rasterize(vtx_uv, self.uv_idx, resolution=self.texture_size)
-        print('>' * 9, 'raster_rasterize over')
         position, _ = self.raster_interpolate(self.vtx_pos, rast_out, self.pos_idx)
 
         v0 = self.vtx_pos[self.pos_idx[:, 0], :]
