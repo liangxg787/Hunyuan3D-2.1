@@ -13,7 +13,7 @@ try:
     from torchvision_fix import apply_fix
     apply_fix()
 except ImportError:
-    print("Warning: torchvision_fix module not found, proceeding without compatibility fix")
+    print("Warning: torchvision_fix module not found, proceeding without compatibility fix")                                      
 except Exception as e:
     print(f"Warning: Failed to apply torchvision fix: {e}")
 
@@ -41,7 +41,7 @@ paint_pipeline = Hunyuan3DPaintPipeline(conf)
 
 output_mesh_path = 'demo_textured.glb'
 output_mesh_path = paint_pipeline(
-    mesh_path = "demo.glb",
+    mesh_path = "demo.glb", 
     image_path = 'assets/demo.png',
     output_mesh_path = output_mesh_path
 )
