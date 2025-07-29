@@ -1,5 +1,4 @@
 import sys
-
 sys.path.insert(0, './hy3dshape')
 sys.path.insert(0, './hy3dpaint')
 
@@ -7,11 +6,11 @@ from PIL import Image
 from hy3dshape.rembg import BackgroundRemover
 from hy3dshape.pipelines import Hunyuan3DDiTFlowMatchingPipeline
 
+
 from textureGenPipeline import Hunyuan3DPaintPipeline, Hunyuan3DPaintConfig
 
 try:
     from torchvision_fix import apply_fix
-
     apply_fix()
 except ImportError:
     print("Warning: torchvision_fix module not found, proceeding without compatibility fix")
@@ -42,7 +41,7 @@ paint_pipeline = Hunyuan3DPaintPipeline(conf)
 
 output_mesh_path = 'demo_textured.glb'
 output_mesh_path = paint_pipeline(
-    mesh_path="demo.glb",
-    image_path='assets/demo.png',
-    output_mesh_path=output_mesh_path
+    mesh_path = "demo.glb",
+    image_path = 'assets/demo.png',
+    output_mesh_path = output_mesh_path
 )
