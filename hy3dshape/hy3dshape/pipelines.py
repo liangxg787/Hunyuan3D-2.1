@@ -168,6 +168,7 @@ class Hunyuan3DDiTPipeline:
             ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=True)
         # load model
         model = instantiate_from_config(config['model'])
+        model.to(device=device)
         model.load_state_dict(ckpt['model'])
         vae = instantiate_from_config(config['vae'])
         vae.load_state_dict(ckpt['vae'], strict=False)
