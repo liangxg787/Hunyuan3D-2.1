@@ -165,10 +165,10 @@ class Hunyuan3DDiTPipeline:
                     ckpt[model_name] = {}
                 ckpt[model_name][new_key] = value
         else:
+            print('>'*9, 'load checkpoint')
             ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=True)
         # load model
         model = instantiate_from_config(config['model'])
-        model.to(device=device)
         model.load_state_dict(ckpt['model'])
         vae = instantiate_from_config(config['vae'])
         vae.load_state_dict(ckpt['vae'], strict=False)
