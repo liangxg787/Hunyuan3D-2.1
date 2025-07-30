@@ -170,9 +170,14 @@ class Hunyuan3DDiTPipeline:
         # load model
         print('>' * 9, 'instantiate_from_config')
         model = instantiate_from_config(config['model'])
+        print('>' * 9, 'model load_state_dict')
         model.load_state_dict(ckpt['model'])
+        model.to(device)
+        print('>' * 9, 'vae instantiate_from_config')
         vae = instantiate_from_config(config['vae'])
+        print('>' * 9, 'vae load_state_dict')
         vae.load_state_dict(ckpt['vae'], strict=False)
+        vae.to(device)
         conditioner = instantiate_from_config(config['conditioner'])
         if 'conditioner' in ckpt:
             conditioner.load_state_dict(ckpt['conditioner'])
