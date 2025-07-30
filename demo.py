@@ -18,8 +18,7 @@ except Exception as e:
     print(f"Warning: Failed to apply torchvision fix: {e}")
 
 # shape
-# model_path = 'tencent/Hunyuan3D-2.1'
-model_path = 'tencent/Hunyuan3D-2mini'
+model_path = 'tencent/Hunyuan3D-2.1'
 pipeline_shapegen = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path)
 
 image_path = 'assets/demo.png'
