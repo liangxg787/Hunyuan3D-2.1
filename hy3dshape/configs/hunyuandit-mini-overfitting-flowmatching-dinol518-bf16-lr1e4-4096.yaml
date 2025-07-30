@@ -18,9 +18,9 @@ dataset:
   target: hy3dshape.data.dit_asl.AlignedShapeLatentModule
   params:
     #! Base setting
-    batch_size: 4
+    batch_size: 2
     num_workers: 2
-    val_num_workers: 4
+    val_num_workers: 1
 
     # Data 
     train_data_list: tools/mini_trainset/preprocessed
