@@ -19,7 +19,7 @@ dataset:
   params:
     #! Base setting
     batch_size: 4
-    num_workers: 8
+    num_workers: 2
     val_num_workers: 4
 
     # Data 
