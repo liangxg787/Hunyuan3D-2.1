@@ -19,8 +19,8 @@ dataset:
   params:
     #! Base setting
     batch_size: 2
-    num_workers: 2
-    val_num_workers: 1
+    num_workers: 8
+    val_num_workers: 4
 
     # Data 
     train_data_list: tools/mini_trainset/preprocessed
